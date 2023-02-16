@@ -9,7 +9,7 @@ Does not support poetry projects! They have their own converter tools.
 Install with pip:
 
 ```bash
-pip install toml_to_requirements
+pip install toml-to-requirements
 ```
 
 ## Usage

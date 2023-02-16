@@ -7,7 +7,7 @@ name = "toml_to_requirements"
 authors = [
     {name = "Jake Cyr", email = "cyrjake@gmail.com"},
 ]
-version = "0.0.1"
+version = "0.0.2"
 description = "Convert a pyproject.toml file to a requirements.txt file"
 readme = "README.md"
 requires-python = ">=3.7"
