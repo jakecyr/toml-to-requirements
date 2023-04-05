@@ -14,8 +14,14 @@ pip install toml-to-requirements
 
 ## Usage
 
-Run the following in the same directory as your pyproject.toml file:
+Run the following command to generate a requirements.txt file without including optional dependencies:
 
 ```bash
-toml-to-req
+toml-to-req --toml-file pyproject.toml
+```
+
+To include optional dependencies, include the `--include-optional` flag in the above command:
+
+```bash
+toml-to-req --toml-file pyproject.toml --include-optional
 ```
