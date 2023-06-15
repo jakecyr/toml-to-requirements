@@ -21,6 +21,10 @@ classifiers = [
 dependencies = [
   "toml"
 ]
+[project.optional-dependencies]
+dev = [
+  "black"
+]
 
 [project.scripts]
 toml-to-req = "toml_to_requirements.main:main"

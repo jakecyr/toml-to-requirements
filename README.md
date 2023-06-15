@@ -25,3 +25,9 @@ To include optional dependencies, include the `--include-optional` flag in the a
 ```bash
 toml-to-req --toml-file pyproject.toml --include-optional
 ```
+
+The optional lists to include can also be specified
+
+```bash
+toml-to-req --toml-file pyproject.toml --include-optional --optional-lists dev,test
+```
