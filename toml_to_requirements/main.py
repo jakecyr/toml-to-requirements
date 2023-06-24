@@ -1,5 +1,7 @@
 #!/usr/bin/env
 
+"""Main entry point for the CLI."""
+
 import toml
 import sys
 import argparse
