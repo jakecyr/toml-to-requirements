@@ -1,53 +1,27 @@
-#!/usr/bin/env
-
 """Main entry point for the CLI."""
 
-import toml
-import sys
-import argparse
+from __future__ import annotations
+
+from toml_to_requirements.cli import CLIArguments, get_parsed_arguments
+from toml_to_requirements.convert_toml_to_requirements import (
+    convert_toml_to_requirements,
+)
 
 
-def main():
-    argparser = argparse.ArgumentParser()
-    argparser.add_argument("--toml-file", type=str, default="pyproject.toml")
-    argparser.add_argument("--include-optional", action="store_true")
-    argparser.add_argument(
-        "-o", "--optional-lists", help="Optional dependency lists to include."
+def main() -> None:
+    arguments: CLIArguments = get_parsed_arguments()
+
+    if not arguments.toml_file_path.is_file():
+        raise FileNotFoundError(f"File not found: {arguments.toml_file_path}")
+
+    with arguments.toml_file_path.open("r") as f:
+        toml_file_contents: str = f.read()
+
+    requirements_content: str = convert_toml_to_requirements(
+        toml_file_contents,
+        optional_lists=arguments.optional_lists,
+        poetry=arguments.poetry,
     )
 
-    args = argparser.parse_args()
-
-    data = toml.load(args.toml_file)
-
-    project = data.get("project")
-
-    if project is None:
-        print("project section is missing from the toml file. Exiting...")
-        sys.exit(1)
-
-    dependencies = set(project.get("dependencies", []))
-
-    if args.include_optional:
-        optional_dependency_list = project.get("optional-dependencies", [])
-        optional_lists_to_include = (
-            None if args.optional_lists is None else str(args.optional_lists).split(",")
-        )
-
-        for optional_list in optional_dependency_list:
-            if (
-                optional_lists_to_include is not None
-                and optional_list not in optional_lists_to_include
-            ):
-                continue
-
-            optional_dependencies = optional_dependency_list[optional_list]
-            dependencies.update(optional_dependencies)
-
-    requirements_content = "\n".join(sorted(dependencies))
-
-    with open("requirements.txt", "w") as f:
+    with arguments.requirements_file_path.open("w") as f:
         f.write(requirements_content)
-
-
-if __name__ == "__main__":
-    main()

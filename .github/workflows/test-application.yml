@@ -1,0 +1,37 @@
+name: Test Application
+
+on:
+  push:
+    branches: ['master']
+  pull_request:
+    branches: ['master']
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.9', '3.10', '3.11', '3.12']
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v3
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install dependencies
+        run: |
+          python3 -m pip install poetry
+          poetry install
+      - name: Check formatting with ruff
+        run: |
+          poetry run ruff check .
+      - name: Check formatting with black
+        run: |
+          poetry run ruff format --check .
+      - name: Test Coverage
+        run: |
+          poetry run coverage run --source toml_to_requirements -m pytest
+          poetry run coverage report --fail-under=90 --show-missing
