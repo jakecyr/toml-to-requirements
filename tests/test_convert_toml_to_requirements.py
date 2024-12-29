@@ -125,7 +125,7 @@ def test_with_poetry_content_and_flag_returns_expected_output() -> None:
         poetry=True,
     )
 
-    assert result == "toml^0.10.2"
+    assert result == "toml ~= 0.10.2"
 
 
 def test_with_poetry_content_and_flag_with_optional_list_returns_expected_output() -> (
@@ -138,9 +138,9 @@ def test_with_poetry_content_and_flag_with_optional_list_returns_expected_output
     )
     expected_packages: list[str] = sorted(
         [
-            "mypy^1.9.0",
-            "ruff^0.3.5",
-            "toml^0.10.2",
+            "mypy ~= 1.9.0",
+            "ruff ~= 0.3.5",
+            "toml ~= 0.10.2",
         ]
     )
 
@@ -157,11 +157,11 @@ def test_with_poetry_content_and_flag_with_optional_lists_returns_expected_outpu
     )
     expected_packages: list[str] = sorted(
         [
-            "mypy^1.9.0",
-            "ruff^0.3.5",
-            "toml^0.10.2",
-            "coverage^7.4.4",
-            "pytest^8.1.1",
+            "mypy ~= 1.9.0",
+            "ruff ~= 0.3.5",
+            "toml ~= 0.10.2",
+            "coverage ~= 7.4.4",
+            "pytest ~= 8.1.1",
         ]
     )
 
@@ -178,11 +178,11 @@ def test_with_poetry_content_and_flag_with_nonexistent_optional_lists_returns_ex
     )
     expected_packages: list[str] = sorted(
         [
-            "mypy^1.9.0",
-            "ruff^0.3.5",
-            "toml^0.10.2",
-            "coverage^7.4.4",
-            "pytest^8.1.1",
+            "mypy ~= 1.9.0",
+            "ruff ~= 0.3.5",
+            "toml ~= 0.10.2",
+            "coverage ~= 7.4.4",
+            "pytest ~= 8.1.1",
         ]
     )
 

@@ -19,7 +19,7 @@ def _convert_poetry_to_requirements(
         )
 
     dependencies: set[str] = {
-        f"{dependency}{version}"
+        f"{dependency}{version.replace('^', ' ~= ')}"
         for dependency, version in project.get("dependencies", {}).items()
         if dependency != "python"
     }
