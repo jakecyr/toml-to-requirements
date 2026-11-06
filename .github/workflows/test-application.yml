@@ -18,25 +18,22 @@ jobs:
         python-version: ['3.9', '3.10', '3.11', '3.12', '3.13', '3.14', '3.15']
     steps:
       - uses: actions/checkout@v7
-      - name: Install Poetry
-        run: pipx install --python /usr/bin/python3 poetry==2.5.1
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v7
+      - name: Install uv and Python
+        uses: astral-sh/setup-uv@v10.3.3
         with:
+          version: '0.13.7'
           python-version: ${{ matrix.python-version }}
       - name: Install dependencies
-        run: |
-          poetry env use "$(which python)"
-          poetry install
+        run: uv sync --locked
       - name: Lint with Ruff
-        run: |
-          poetry run ruff check .
+        run: uv run --locked ruff check .
       - name: Check formatting with Ruff
-        run: |
-          poetry run ruff format --check .
+        run: uv run --locked ruff format --check .
       - name: Type check
-        run: poetry run mypy toml_to_requirements
-      - name: Test Coverage
+        run: uv run --locked mypy toml_to_requirements
+      - name: Test coverage
         run: |
-          poetry run coverage run --source toml_to_requirements -m pytest
-          poetry run coverage report --fail-under=90 --show-missing
+          uv run --locked coverage run --source toml_to_requirements -m pytest
+          uv run --locked coverage report --fail-under=90 --show-missing
+      - name: Build distributions
+        run: uv build
