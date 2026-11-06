@@ -1,14 +1,14 @@
-[tool.poetry]
-name = "toml_to_requirements"
+[project]
+name = "toml-to-requirements"
 version = "0.3.0"
 description = "Convert a pyproject.toml file to a requirements.txt file"
-authors = ["Jake Cyr <cyrjake@gmail.com>"]
+authors = [{ name = "Jake Cyr", email = "cyrjake@gmail.com" }]
 license = "MIT"
 readme = "README.md"
+requires-python = ">=3.9,<4.0"
 keywords = ["toml", "requirements", "converter", "parser"]
 classifiers = [
   "Intended Audience :: Developers",
-  "License :: OSI Approved :: MIT License",
   "Programming Language :: Python :: 3.9",
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
@@ -17,25 +17,23 @@ classifiers = [
   "Programming Language :: Python :: 3.14",
   "Programming Language :: Python :: 3.15",
 ]
-packages = [{ include = "toml_to_requirements" }]
+dependencies = ["toml>=0.10.2,<0.11", "packaging>=23.2"]
 
-[tool.poetry.dependencies]
-python = ">=3.9,<4.0"
-toml = "^0.10.2"
-packaging = ">=23.2"
-
-[tool.poetry.group.dev.dependencies]
-ruff = ">=0.3.5,<1"
-pytest = ">=8.1.1,<10"
-mypy = ">=1.9,<3"
-coverage = ">=7.4.4,<8"
-
-[tool.poetry.group.types.dependencies]
-types-toml = ">=0.10.8.20240310"
-
-[tool.poetry.scripts]
+[project.scripts]
 toml-to-req = "toml_to_requirements.main:main"
 
+[dependency-groups]
+dev = [
+  "ruff>=0.3.5,<1",
+  "pytest>=8.1.1,<10",
+  "mypy>=1.9,<3",
+  "coverage>=7.4.4,<8",
+  "types-toml>=0.10.8.20240310",
+]
+
 [build-system]
-requires = ["poetry-core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"
+requires = ["uv_build>=0.13.7,<0.14"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-root = ""

@@ -41,18 +41,18 @@ requirements = convert_toml_to_requirements(
 
 ## Development
 
-Install Python and [Poetry](https://python-poetry.org/docs/#installation), then:
+Install [uv](https://docs.astral.sh/uv/getting-started/installation/), then:
 
 ```sh
-poetry install
-poetry run ruff check .
-poetry run ruff format --check .
-poetry run mypy toml_to_requirements
-poetry run coverage run --source toml_to_requirements -m pytest
-poetry run coverage report --fail-under=90 --show-missing
+uv sync --locked
+uv run --locked ruff check .
+uv run --locked ruff format --check .
+uv run --locked mypy toml_to_requirements
+uv run --locked coverage run --source toml_to_requirements -m pytest
+uv run --locked coverage report --fail-under=90 --show-missing
 ```
 
-CI runs these checks across Python 3.9–3.15. To test another interpreter locally, use `poetry env use python3.15` before installing dependencies.
+CI runs these checks across Python 3.9–3.15. To test another interpreter locally, run `uv sync --locked --python 3.15` before the checks. Run `uv build` to build the source distribution and wheel.
 
 ## License
 
