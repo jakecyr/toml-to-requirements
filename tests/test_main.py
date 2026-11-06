@@ -1,8 +1,10 @@
 from __future__ import annotations
-from toml_to_requirements.main import main
-from toml_to_requirements.cli import CLIArguments
+
 from pathlib import Path
 from unittest import mock
+
+from toml_to_requirements.cli import CLIArguments
+from toml_to_requirements.main import main
 
 EXAMPLE_TOML_PATH_WITH_VERSIONS = Path("tests/example_toml_with_versions.toml")
 EXAMPLE_REQUIREMENTS_PATH_WITH_VERSIONS = Path(
@@ -65,3 +67,33 @@ def test_main_with_versions_in_toml(_mock_get_parsed_arguments: mock.Mock) -> No
         assert len(packages_in_requirements) == 2
     finally:
         EXAMPLE_REQUIREMENTS_PATH_WITH_VERSIONS.unlink(missing_ok=True)
+
+
+def test_same_input_and_output_is_rejected(tmp_path: Path) -> None:
+    import pytest
+
+    path = tmp_path / "pyproject.toml"
+    path.write_text('[project]\ndependencies = ["foo"]', encoding="utf-8")
+    args = CLIArguments(path, path, None, False)
+    with (
+        mock.patch("toml_to_requirements.main.get_parsed_arguments", return_value=args),
+        pytest.raises(ValueError, match="different"),
+    ):
+        main()
+    assert path.read_text(encoding="utf-8") == '[project]\ndependencies = ["foo"]'
+
+
+def test_conversion_failure_preserves_existing_output(tmp_path: Path) -> None:
+    import pytest
+
+    source = tmp_path / "pyproject.toml"
+    output = tmp_path / "requirements.txt"
+    source.write_text('[project]\ndependencies = ["bad^1"]', encoding="utf-8")
+    output.write_text("keep me", encoding="utf-8")
+    args = CLIArguments(source, output, None, False)
+    with (
+        mock.patch("toml_to_requirements.main.get_parsed_arguments", return_value=args),
+        pytest.raises(ValueError),
+    ):
+        main()
+    assert output.read_text(encoding="utf-8") == "keep me"
