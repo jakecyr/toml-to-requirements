@@ -14,7 +14,10 @@ def main() -> None:
     if not arguments.toml_file_path.is_file():
         raise FileNotFoundError(f"File not found: {arguments.toml_file_path}")
 
-    with arguments.toml_file_path.open("r") as f:
+    if arguments.toml_file_path.resolve() == arguments.requirements_file_path.resolve():
+        raise ValueError("Input and output paths must be different.")
+
+    with arguments.toml_file_path.open("r", encoding="utf-8") as f:
         toml_file_contents: str = f.read()
 
     requirements_content: str = convert_toml_to_requirements(
@@ -23,5 +26,5 @@ def main() -> None:
         poetry=arguments.poetry,
     )
 
-    with arguments.requirements_file_path.open("w") as f:
+    with arguments.requirements_file_path.open("w", encoding="utf-8") as f:
         f.write(requirements_content)

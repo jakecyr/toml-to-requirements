@@ -1,104 +1,145 @@
-"""Convert a pyproject.toml file to a requirements.txt file."""
+"""Convert supported pyproject.toml dependencies to pip requirements."""
 
 from __future__ import annotations
+
+import re
 from typing import Any
 
 import toml
+from packaging.requirements import InvalidRequirement, Requirement
+from packaging.utils import canonicalize_name
+
+
+def _validate_requirement(value: str) -> str:
+    if not isinstance(value, str) or "\n" in value or "\r" in value:
+        raise ValueError(f"Invalid requirement: {value!r}")
+    try:
+        Requirement(value)
+    except InvalidRequirement as exc:
+        raise ValueError(f"Invalid requirement: {value!r}") from exc
+    return value
+
+
+def _poetry_constraint(constraint: str) -> str:
+    """Translate Poetry's common version syntax to PEP 440 specifiers."""
+    parts: list[str] = []
+    for raw in constraint.split(","):
+        part = raw.strip()
+        match = re.fullmatch(r"([\^~])(\d+(?:\.\d+)*)", part)
+        if match:
+            operator, version = match.groups()
+            numbers = [int(n) for n in version.split(".")]
+            if operator == "^":
+                index = next((i for i, n in enumerate(numbers) if n), len(numbers) - 1)
+            else:
+                index = 0 if len(numbers) == 1 else 1
+            upper = numbers[: index + 1]
+            upper[index] += 1
+            parts.extend((f">={version}", "<" + ".".join(map(str, upper))))
+        elif part == "*":
+            continue
+        elif re.fullmatch(r"\d+(?:\.\d+)*(?:\.\*)?", part):
+            parts.append(f"=={part}")
+        elif (
+            part
+            and not any(c in part for c in "^| ")
+            and ("~" not in part or part.startswith("~="))
+        ):
+            parts.append(part)
+        else:
+            raise ValueError(f"Unsupported Poetry version constraint: {constraint!r}")
+    return ",".join(parts)
+
+
+def _poetry_requirement(name: str, value: Any) -> str:
+    if isinstance(value, str):
+        spec, extras, marker = value, [], None
+    elif isinstance(value, dict):
+        unsupported = set(value) - {"version", "extras", "markers", "optional"}
+        if unsupported:
+            raise ValueError(
+                f"Unsupported Poetry fields for {name}: {', '.join(sorted(unsupported))}"
+            )
+        spec = value.get("version", "*")
+        extras = value.get("extras", [])
+        marker = value.get("markers")
+        if (
+            not isinstance(spec, str)
+            or not isinstance(extras, list)
+            or not all(isinstance(x, str) for x in extras)
+            or (marker is not None and not isinstance(marker, str))
+        ):
+            raise ValueError(f"Invalid Poetry dependency: {name}")
+    else:
+        raise ValueError(f"Unsupported Poetry dependency: {name}")  # noqa: TRY004
+    suffix = f"[{','.join(extras)}]" if extras else ""
+    requirement = f"{name}{suffix}{_poetry_constraint(spec)}"
+    if marker:
+        requirement += f"; {marker}"
+    return _validate_requirement(requirement)
 
 
 def _convert_poetry_to_requirements(
-    parsed_toml_file: dict[str, Any],
-    *,
-    optional_lists: list[str] | None,
+    parsed: dict[str, Any], *, optional_lists: list[str] | None
 ) -> str:
-    project: dict | None = parsed_toml_file.get("tool", {}).get("poetry")
-
-    if project is None:
-        raise RuntimeError(
-            "The project section is missing from the TOML file. Exiting..."
-        )
-
-    dependencies: set[str] = {
-        f"{dependency}{version}"
-        for dependency, version in project.get("dependencies", {}).items()
-        if dependency != "python"
+    project = parsed.get("tool", {}).get("poetry")
+    if not isinstance(project, dict):
+        raise RuntimeError("The [tool.poetry] section is missing from the TOML file.")  # noqa: TRY004
+    selected = set(optional_lists or [])
+    extras = project.get("extras", {})
+    enabled = {
+        canonicalize_name(name) for extra in selected for name in extras.get(extra, [])
     }
-
-    if optional_lists is not None:
-        groups: dict[str, Any] = project.get("group", {})
-
-        for optional_list_to_include in optional_lists:
-            if optional_list_to_include not in groups:
-                continue
-
-            group: dict[str, Any] = groups[optional_list_to_include]
-
-            optional_dependencies: set[str] = {
-                f"{dependency}{version}"
-                for dependency, version in group.get("dependencies", {}).items()
-            }
-
-            dependencies.update(optional_dependencies)
-
+    dependencies = set()
+    for name, value in project.get("dependencies", {}).items():
+        if name.lower() == "python":
+            continue
+        if (
+            isinstance(value, dict)
+            and value.get("optional", False)
+            and canonicalize_name(name) not in enabled
+        ):
+            continue
+        dependencies.add(_poetry_requirement(name, value))
+    for group_name in selected:
+        group = project.get("group", {}).get(group_name, {})
+        for name, value in group.get("dependencies", {}).items():
+            dependencies.add(_poetry_requirement(name, value))
     return "\n".join(sorted(dependencies))
 
 
 def _convert_setuptools_to_requirements(
-    parsed_toml_file: dict[str, Any],
-    *,
-    optional_lists: list[str] | None,
+    parsed: dict[str, Any], *, optional_lists: list[str] | None
 ) -> str:
-    project: dict | None = parsed_toml_file.get("project")
-
-    if project is None:
-        raise RuntimeError(
-            "The project section is missing from the TOML file. Exiting..."
+    project = parsed.get("project")
+    if not isinstance(project, dict):
+        raise RuntimeError("The [project] section is missing from the TOML file.")  # noqa: TRY004
+    if "dependencies" in project.get("dynamic", []) or (
+        optional_lists and "optional-dependencies" in project.get("dynamic", [])
+    ):
+        raise ValueError(
+            "Dynamic dependencies cannot be converted from pyproject.toml."
         )
-
-    dependencies = set(project.get("dependencies", []))
-
-    if optional_lists is not None:
-        optional_dependency_list: dict[str, Any] = project.get(
-            "optional-dependencies", {}
+    dependencies = {
+        _validate_requirement(dep) for dep in project.get("dependencies", [])
+    }
+    for name in optional_lists or []:
+        dependencies.update(
+            _validate_requirement(dep)
+            for dep in project.get("optional-dependencies", {}).get(name, [])
         )
-        optional_lists_to_include: set[str] = (
-            set(optional_lists) if optional_lists is not None else set()
-        )
-
-        for optional_list, deps in optional_dependency_list.items():
-            if optional_list in optional_lists_to_include:
-                dependencies.update(deps)
-
     return "\n".join(sorted(dependencies))
 
 
 def convert_toml_to_requirements(
-    toml_file_string: str,
-    *,
-    optional_lists: list[str] | None,
-    poetry: bool,
+    toml_file_string: str, *, optional_lists: list[str] | None, poetry: bool
 ) -> str:
-    """Convert a pyproject.toml file to a requirements.txt file.
+    """Return sorted, deduplicated pip requirements from TOML source text.
 
-    Args:
-        toml_file_string: The contents of the pyproject.toml file.
-        optional_lists: A list of optional dependency lists to include.
-        poetry: Whether to use poetry instead of setuptools.
-
-    Returns:
-        The contents of the requirements.txt file.
-
-    Raises:
-        RuntimeError: If poetry is set to True since it is not yet supported.
+    Unknown optional list names are ignored. Invalid TOML, requirements, and
+    unsupported Poetry syntax raise an exception instead of producing bad output.
     """
-    parsed_toml_file: dict[str, Any] = toml.loads(toml_file_string)
-
+    parsed = toml.loads(toml_file_string)
     if poetry:
-        return _convert_poetry_to_requirements(
-            parsed_toml_file, optional_lists=optional_lists
-        )
-
-    return _convert_setuptools_to_requirements(
-        parsed_toml_file,
-        optional_lists=optional_lists,
-    )
+        return _convert_poetry_to_requirements(parsed, optional_lists=optional_lists)
+    return _convert_setuptools_to_requirements(parsed, optional_lists=optional_lists)

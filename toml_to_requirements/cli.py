@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 import argparse
 from pathlib import Path
 from typing import NamedTuple
@@ -43,6 +44,10 @@ def get_parsed_arguments() -> CLIArguments:
     return CLIArguments(
         toml_file_path=Path(args.toml_file),
         requirements_file_path=Path(args.requirements_file),
-        optional_lists=args.optional_lists.split(",") if args.optional_lists else None,
+        optional_lists=[
+            name.strip() for name in args.optional_lists.split(",") if name.strip()
+        ]
+        if args.optional_lists
+        else None,
         poetry=args.poetry or False,
     )

@@ -11,26 +11,31 @@ permissions:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     strategy:
+      fail-fast: false
       matrix:
-        python-version: ['3.9', '3.10', '3.11', '3.12']
+        python-version: ['3.9', '3.10', '3.11', '3.12', '3.13', '3.14', '3.15']
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v7
+      - name: Install Poetry
+        run: pipx install --python /usr/bin/python3 poetry==2.5.1
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v3
+        uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install dependencies
         run: |
-          python3 -m pip install poetry
+          poetry env use "$(which python)"
           poetry install
-      - name: Check formatting with ruff
+      - name: Lint with Ruff
         run: |
           poetry run ruff check .
-      - name: Check formatting with black
+      - name: Check formatting with Ruff
         run: |
           poetry run ruff format --check .
+      - name: Type check
+        run: poetry run mypy toml_to_requirements
       - name: Test Coverage
         run: |
           poetry run coverage run --source toml_to_requirements -m pytest

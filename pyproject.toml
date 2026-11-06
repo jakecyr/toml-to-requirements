@@ -13,21 +13,25 @@ classifiers = [
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+  "Programming Language :: Python :: 3.15",
 ]
 packages = [{ include = "toml_to_requirements" }]
 
 [tool.poetry.dependencies]
-python = ">=3.9,<=3.12"
+python = ">=3.9,<4.0"
 toml = "^0.10.2"
+packaging = ">=23.2"
 
 [tool.poetry.group.dev.dependencies]
-ruff = "^0.3.5"
-pytest = "^8.1.1"
-mypy = "^1.9.0"
-coverage = "^7.4.4"
+ruff = ">=0.3.5,<1"
+pytest = ">=8.1.1,<10"
+mypy = ">=1.9,<3"
+coverage = ">=7.4.4,<8"
 
 [tool.poetry.group.types.dependencies]
-types-toml = "^0.10.8.20240310"
+types-toml = ">=0.10.8.20240310"
 
 [tool.poetry.scripts]
 toml-to-req = "toml_to_requirements.main:main"

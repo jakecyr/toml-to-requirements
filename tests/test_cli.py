@@ -1,6 +1,8 @@
 from __future__ import annotations
+
 from pathlib import Path
 from unittest.mock import patch
+
 from toml_to_requirements.cli import (
     CLIArguments,
     get_parsed_arguments,
